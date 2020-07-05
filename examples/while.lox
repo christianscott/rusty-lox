@@ -1,0 +1,6 @@
+var loops = 0;
+while (loops < 10) {
+    print "loop " + loops;
+    loops = loops + 1;
+}
+print "finished looping";

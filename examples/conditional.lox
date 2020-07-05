@@ -1,0 +1,6 @@
+var i = 9;
+if (0 < i and i < 10) {
+    print "the condition has been met";
+} else {
+    print "the condition has NOT been met";
+}
