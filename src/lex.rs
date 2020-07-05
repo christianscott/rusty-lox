@@ -115,21 +115,29 @@ impl Lexer {
             println!("branch with dot");
             self.advance();
             self.eat_while(|ch| ch.is_numeric());
-            self.get_lexeme().parse().expect("TODO: real error handling")
+            self.get_lexeme()
+                .parse()
+                .expect("TODO: real error handling")
         } else {
             println!("branch without dot");
-            self.get_lexeme().parse::<u64>().expect("TODO: real error handling") as f64
+            self.get_lexeme()
+                .parse::<u64>()
+                .expect("TODO: real error handling") as f64
         };
         self.add_token(self.token(TokenKind::Number, Some(Literal::Number(literal))))
     }
 
     fn identifier(&mut self) {
         self.eat_while(|c| c.is_alphanumeric());
-        self.add_token(self.token(TokenKind::Identifier, None));
+        let text = self.get_lexeme();
+        self.add_token(self.token(token_kind_for_text(&text), None));
     }
 
     fn get_lexeme(&self) -> String {
-        self.chars[self.start..self.current].iter().clone().collect()
+        self.chars[self.start..self.current]
+            .iter()
+            .clone()
+            .collect()
     }
 
     fn eat(&mut self, c: char) -> bool {
@@ -183,5 +191,27 @@ impl Lexer {
             literal,
             line: self.line,
         }
+    }
+}
+
+fn token_kind_for_text(text: &str) -> TokenKind {
+    match text.as_ref() {
+        "and" => TokenKind::And,
+        "class" => TokenKind::Class,
+        "else" => TokenKind::Else,
+        "false" => TokenKind::False,
+        "for" => TokenKind::For,
+        "fun" => TokenKind::Fun,
+        "if" => TokenKind::If,
+        "nil" => TokenKind::Nil,
+        "or" => TokenKind::Or,
+        "print" => TokenKind::Print,
+        "return" => TokenKind::Return,
+        "super" => TokenKind::Super,
+        "this" => TokenKind::This,
+        "true" => TokenKind::True,
+        "var" => TokenKind::Var,
+        "while" => TokenKind::While,
+        _ => TokenKind::Identifier,
     }
 }
