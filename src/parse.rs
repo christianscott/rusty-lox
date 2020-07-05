@@ -5,7 +5,10 @@ pub fn parse(tokens: Vec<Token>) -> Vec<Stmt> {
     Parser { tokens, current: 0 }.parse()
 }
 
-pub struct ParseErr;
+pub struct ParseErr {
+    token: Token,
+    message: String,
+}
 
 struct Parser {
     tokens: Vec<Token>,
@@ -31,11 +34,14 @@ macro_rules! eat {
 }
 
 macro_rules! consume {
-    ($self:ident, $p:pat) => {
+    ($self:ident, $p:pat, $message:literal) => {
         if let Some(tok) = eat!($self, $p) {
             Ok(tok)
         } else {
-            Err(ParseErr)
+            Err(ParseErr {
+                message: $message.to_string(),
+                token: $self.peek(),
+            })
         }
     };
 }
@@ -47,7 +53,13 @@ impl Parser {
         while !self.is_at_end() {
             match self.declaration() {
                 Ok(statement) => statments.push(statement),
-                Err(_) => println!("something fucky wucky happened"),
+                Err(ParseErr {
+                    message,
+                    ..
+                }) => {
+                    self.synchronize();
+                    println!("parse error: {}", message)
+                },
             }
         }
 
@@ -63,7 +75,7 @@ impl Parser {
     }
 
     fn var_declaration(&mut self) -> Result<Stmt, ParseErr> {
-        let name = consume!(self, TokenKind::Identifier)?;
+        let name = consume!(self, TokenKind::Identifier, "Expect variable name.")?;
 
         let initializer = if eat!(self, TokenKind::Equal).is_some() {
             Some(self.expression()?)
@@ -71,7 +83,7 @@ impl Parser {
             None
         };
 
-        consume!(self, TokenKind::Semicolon)?;
+        consume!(self, TokenKind::Semicolon, "Expect ';' after variable declaration.")?;
 
         Ok(Stmt::Var { name, initializer })
     }
@@ -89,7 +101,7 @@ impl Parser {
 
     /// for statements are de-sugared into while loops
     fn for_statement(&mut self) -> Result<Stmt, ParseErr> {
-        consume!(self, TokenKind::LeftParen)?;
+        consume!(self, TokenKind::LeftParen, "Expect '(' after 'for'.")?;
 
         let initializer = match self.advance().kind {
             TokenKind::Semicolon => None,
@@ -102,12 +114,14 @@ impl Parser {
         } else {
             self.expression()?
         };
+        consume!(self, TokenKind::Semicolon, "Expect ';' after loop condition.")?;
 
         let increment = if check!(self, TokenKind::RightParen) {
             None
         } else {
             Some(self.expression()?)
         };
+        consume!(self, TokenKind::RightParen, "Expect ')' after for clauses.")?;
 
         let mut body = self.statement()?;
         if let Some(increment) = increment {
@@ -131,9 +145,9 @@ impl Parser {
     }
 
     fn if_statement(&mut self) -> Result<Stmt, ParseErr> {
-        consume!(self, TokenKind::LeftParen)?;
+        consume!(self, TokenKind::LeftParen, "Expect '(' after 'if'.")?;
         let condition = self.expression()?;
-        consume!(self, TokenKind::RightParen)?;
+        consume!(self, TokenKind::RightParen, "Expect ')' after if condition.")?;
 
         let then_branch = Box::new(self.statement()?);
         let else_branch = if eat!(self, TokenKind::Else).is_some() {
@@ -151,14 +165,14 @@ impl Parser {
 
     fn print_statement(&mut self) -> Result<Stmt, ParseErr> {
         let expr = self.expression()?;
-        consume!(self, TokenKind::Semicolon)?;
+        consume!(self, TokenKind::Semicolon, "Expect ';' after value.")?;
         Ok(Stmt::Print { expr })
     }
 
     fn while_statement(&mut self) -> Result<Stmt, ParseErr> {
-        consume!(self, TokenKind::LeftParen)?;
+        consume!(self, TokenKind::LeftParen, "Expect '(' after 'while'.")?;
         let condition = self.expression()?;
-        consume!(self, TokenKind::RightParen)?;
+        consume!(self, TokenKind::RightParen, "Expect ')' after while condition.")?;
         let body = self.statement()?;
         Ok(Stmt::While{ condition, body: Box::new(body) })
     }
@@ -168,13 +182,13 @@ impl Parser {
         while !check!(self, TokenKind::RightBrace) && !self.is_at_end() {
             statements.push(self.declaration()?);
         }
-        consume!(self, TokenKind::RightBrace)?;
+        consume!(self, TokenKind::RightBrace, "Expect '}' after block.")?;
         Ok(statements)
     }
 
     fn expression_statement(&mut self) -> Result<Stmt, ParseErr> {
         let expr = self.expression()?;
-        consume!(self, TokenKind::Semicolon)?;
+        consume!(self, TokenKind::Semicolon, "Expect ';' after value.")?;
         Ok(Stmt::Expression { expr })
     }
 
@@ -185,14 +199,17 @@ impl Parser {
 
     fn assignment(&mut self) -> Result<Expr, ParseErr> {
         let expr = self.or()?;
-        if let Some(_equals) = eat!(self, TokenKind::Equal) {
+        if let Some(equals) = eat!(self, TokenKind::Equal) {
             let value = self.assignment()?;
 
             if let Expr::Variable { name } = expr {
                 return Ok(Expr::Assign { name, value: Box::new(value) });
             }
 
-            return Err(ParseErr);
+            return Err(ParseErr {
+                token: equals,
+                message: "Invalid assignment target.".to_string(),
+            });
         }
 
         Ok(expr)
@@ -288,6 +305,7 @@ impl Parser {
 
     fn primary(&mut self) -> Result<Expr, ParseErr> {
         let tok = self.advance();
+        println!("{:?}", tok);
         use TokenKind::*;
         match tok.kind {
             False => Ok(Expr::Literal { val: Literal::Bool(false) }),
@@ -297,11 +315,14 @@ impl Parser {
             TokenKind::String => Ok(Expr::Literal { val: Literal::Str("".to_string()) }),
             LeftParen => {
                 let expr = self.expression()?;
-                consume!(self, TokenKind::RightParen)?;
+                consume!(self, TokenKind::RightParen, "Expect ')' after expression.")?;
                 Ok(Expr::Grouping { expr: Box::new(expr) })
             }
             Identifier => Ok(Expr::Variable { name: tok }),
-            _ => Err(ParseErr),
+            _ => Err(ParseErr {
+                token: tok,
+                message: "Expect expression.".to_string(),
+            }),
         }
     }
 
