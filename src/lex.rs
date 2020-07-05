@@ -112,17 +112,17 @@ impl Lexer {
     fn number(&mut self) {
         self.eat_while(|&c| c.is_numeric());
         let literal = if self.next_is('.') && self.peek_nth(1).map_or(false, |ch| ch.is_numeric()) {
-            println!("branch with dot");
+            // floating point, e.g. 3.14
             self.advance();
             self.eat_while(|ch| ch.is_numeric());
             self.get_lexeme()
                 .parse()
                 .expect("TODO: real error handling")
         } else {
-            println!("branch without dot");
+            // natural number, e.g. 69
             self.get_lexeme()
                 .parse::<u64>()
-                .expect("TODO: real error handling") as f64
+                .expect("TODO: real error handling") as f64 // cast int to floating point num
         };
         self.add_token(self.token(TokenKind::Number, Some(Literal::Number(literal))))
     }
@@ -130,7 +130,8 @@ impl Lexer {
     fn identifier(&mut self) {
         self.eat_while(|c| c.is_alphanumeric());
         let text = self.get_lexeme();
-        self.add_token(self.token(token_kind_for_text(&text), None));
+        let (kind, literal) = token_kind_and_literal_for_text(&text);
+        self.add_token(self.token(kind, literal));
     }
 
     fn get_lexeme(&self) -> String {
@@ -194,22 +195,30 @@ impl Lexer {
     }
 }
 
+/// get the token kind & possibly the literal for a given string
+fn token_kind_and_literal_for_text(text: &str) -> (TokenKind, Option<Literal>) {
+    match text.as_ref() {
+        "true" => (TokenKind::True, Some(Literal::Bool(true))),
+        "false" => (TokenKind::False, Some(Literal::Bool(false))),
+        "nil" => (TokenKind::Nil, Some(Literal::Nil)),
+        _ => (token_kind_for_text(text), None),
+    }
+}
+
+/// get the token kind (sans literal) for a piece of text. falls back to "identifier"
 fn token_kind_for_text(text: &str) -> TokenKind {
     match text.as_ref() {
         "and" => TokenKind::And,
         "class" => TokenKind::Class,
         "else" => TokenKind::Else,
-        "false" => TokenKind::False,
         "for" => TokenKind::For,
         "fun" => TokenKind::Fun,
         "if" => TokenKind::If,
-        "nil" => TokenKind::Nil,
         "or" => TokenKind::Or,
         "print" => TokenKind::Print,
         "return" => TokenKind::Return,
         "super" => TokenKind::Super,
         "this" => TokenKind::This,
-        "true" => TokenKind::True,
         "var" => TokenKind::Var,
         "while" => TokenKind::While,
         _ => TokenKind::Identifier,
