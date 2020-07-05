@@ -63,6 +63,6 @@ impl Lox {
     }
 
     fn run(&self, source: &str) {
-        println!("{}", source)
+        let tokens = lex::lex(source);
     }
 }

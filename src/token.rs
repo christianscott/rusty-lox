@@ -1,8 +1,8 @@
 pub struct Token {
-    kind: TokenType,
-    lexeme: String,
-    literal: Literal,
-    line: usize,
+    pub kind: TokenType,
+    pub lexeme: Option<String>,
+    pub literal: Option<Literal>,
+    pub line: usize,
 }
 
 pub enum TokenType {
@@ -54,7 +54,7 @@ pub enum TokenType {
     Eof,
 }
 
-enum Literal {
+pub enum Literal {
     Bool { value: bool },
     Nil,
     Number { value: f64 },
