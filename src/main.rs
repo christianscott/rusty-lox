@@ -5,6 +5,8 @@ use std::io::{self, prelude::Write};
 mod lex;
 mod token;
 
+use token::TokenKind;
+
 fn main() {
     let mut lox = Lox::new();
     let args: Vec<String> = env::args().skip(1).collect();
@@ -63,6 +65,10 @@ impl Lox {
     }
 
     fn run(&self, source: &str) {
-        let tokens = lex::lex(source);
+        let kinds: Vec<TokenKind> = lex::lex(source)
+            .iter()
+            .map(|tok| tok.kind.clone())
+            .collect();
+        println!("{:?}", kinds);
     }
 }

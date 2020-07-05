@@ -1,11 +1,16 @@
+#[derive(Clone)]
+pub struct Range(pub usize, pub usize);
+
+#[derive(Clone)]
 pub struct Token {
-    pub kind: TokenType,
-    pub lexeme: Option<String>,
+    pub kind: TokenKind,
+    pub lexeme: Range,
     pub literal: Option<Literal>,
     pub line: usize,
 }
 
-pub enum TokenType {
+#[derive(Clone, Debug)]
+pub enum TokenKind {
     // SingleCharacterTokens
     LeftParen,
     RightParen,
@@ -54,9 +59,10 @@ pub enum TokenType {
     Eof,
 }
 
+#[derive(Clone)]
 pub enum Literal {
-    Bool { value: bool },
+    Bool(bool),
     Nil,
-    Number { value: f64 },
-    Str { value: String },
+    Number(f64),
+    Str(String),
 }
