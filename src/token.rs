@@ -1,7 +1,7 @@
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Range(pub usize, pub usize);
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Token {
     pub kind: TokenKind,
     pub lexeme: Range,
@@ -59,7 +59,7 @@ pub enum TokenKind {
     Eof,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Literal {
     Bool(bool),
     Nil,

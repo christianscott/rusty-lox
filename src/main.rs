@@ -3,6 +3,8 @@ use std::fs;
 use std::io::{self, prelude::Write};
 
 mod lex;
+mod parse;
+mod stmt;
 mod token;
 
 use token::TokenKind;
@@ -65,10 +67,8 @@ impl Lox {
     }
 
     fn run(&self, source: &str) {
-        let kinds: Vec<TokenKind> = lex::lex(source)
-            .iter()
-            .map(|tok| tok.kind.clone())
-            .collect();
-        println!("{:?}", kinds);
+        let tokens = lex::lex(source);
+        let statements = parse::parse(tokens);
+        println!("{:?}", statements);
     }
 }

@@ -92,7 +92,7 @@ impl Lexer {
                 } else if c.is_alphabetic() {
                     self.identifier();
                 } else {
-                    // TODO: error out here
+                    panic!("unexpected char {}", c)
                 }
             }
         }
