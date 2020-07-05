@@ -2,6 +2,9 @@ use std::env;
 use std::fs;
 use std::io::{self, prelude::Write};
 
+mod lex;
+mod token;
+
 fn main() {
     let mut lox = Lox::new();
     let args: Vec<String> = env::args().skip(1).collect();
