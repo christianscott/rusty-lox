@@ -10,6 +10,7 @@ pub struct ParseErr {
     message: String,
 }
 
+#[derive(Debug)]
 struct Parser {
     tokens: Vec<Token>,
     current: usize,
@@ -29,6 +30,15 @@ macro_rules! eat {
         match $self.peek() {
             $(Token { kind: $p, .. }) |+ => Some($self.advance()),
             _ => None,
+        }
+    };
+}
+
+macro_rules! did_eat {
+    ($self:ident, $($p:pat),+) => {
+        match $self.peek() {
+            $(Token { kind: $p, .. }) |+ => { $self.advance(); true },
+            _ => false,
         }
     };
 }
@@ -89,13 +99,18 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Stmt, ParseErr> {
-        match self.advance().kind {
-            TokenKind::For => self.for_statement(),
-            TokenKind::If => self.if_statement(),
-            TokenKind::Print => self.print_statement(),
-            TokenKind::While => self.while_statement(),
-            TokenKind::LeftBrace => Ok(Stmt::Block { statements: self.block()? }),
-            _ => self.expression_statement(),
+        if did_eat!(self, TokenKind::For) {
+            self.for_statement()
+        } else if did_eat!(self, TokenKind::If) {
+            self.if_statement()
+        } else if did_eat!(self, TokenKind::Print) {
+            self.print_statement()
+        } else if did_eat!(self, TokenKind::While) {
+            self.while_statement()
+        } else if did_eat!(self, TokenKind::LeftBrace) {
+            Ok(Stmt::Block{ statements: self.block()? })
+        } else {
+            self.expression_statement()
         }
     }
 
@@ -103,10 +118,12 @@ impl Parser {
     fn for_statement(&mut self) -> Result<Stmt, ParseErr> {
         consume!(self, TokenKind::LeftParen, "Expect '(' after 'for'.")?;
 
-        let initializer = match self.advance().kind {
-            TokenKind::Semicolon => None,
-            TokenKind::Var => Some(self.var_declaration()?),
-            _ => Some(self.expression_statement()?),
+        let initializer = if did_eat!(self, TokenKind::Semicolon) {
+            None
+        } else if did_eat!(self, TokenKind::Var) {
+            Some(self.var_declaration()?)
+        } else {
+            Some(self.expression_statement()?)
         };
 
         let condition = if check!(self, TokenKind::Semicolon) {
@@ -192,7 +209,6 @@ impl Parser {
         Ok(Stmt::Expression { expr })
     }
 
-    /// TODO: parse expressions
     fn expression(&mut self) -> Result<Expr, ParseErr> {
         self.assignment()
     }
@@ -305,7 +321,6 @@ impl Parser {
 
     fn primary(&mut self) -> Result<Expr, ParseErr> {
         let tok = self.advance();
-        println!("{:?}", tok);
         use TokenKind::*;
         match tok.kind {
             False => Ok(Expr::Literal { val: Literal::Bool(false) }),
