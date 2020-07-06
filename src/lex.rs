@@ -106,7 +106,7 @@ impl Lexer {
         }
         self.advance();
         let text = self.get_lexeme();
-        self.add_token(self.token(TokenKind::String, Some(Literal::Str(text))));
+        self.add_basic_token(TokenKind::Str(text))
     }
 
     fn number(&mut self) {
@@ -124,14 +124,14 @@ impl Lexer {
                 .parse::<u64>()
                 .expect("TODO: real error handling") as f64 // cast int to floating point num
         };
-        self.add_token(self.token(TokenKind::Number, Some(Literal::Number(literal))))
+        self.add_basic_token(TokenKind::Number(literal));
     }
 
     fn identifier(&mut self) {
         self.eat_while(|c| c.is_alphanumeric());
         let text = self.get_lexeme();
-        let (kind, literal) = token_kind_and_literal_for_text(&text);
-        self.add_token(self.token(kind, literal));
+        let kind = token_kind_for_text(&text);
+        self.add_basic_token(kind);
     }
 
     fn get_lexeme(&self) -> String {
@@ -178,36 +178,28 @@ impl Lexer {
     }
 
     fn add_basic_token(&mut self, kind: TokenKind) {
-        self.add_token(self.token(kind, None));
+        self.add_token(self.token(kind));
     }
 
     fn add_token(&mut self, token: Token) {
         self.tokens.push(token);
     }
 
-    fn token(&self, kind: TokenKind, literal: Option<Literal>) -> Token {
+    fn token(&self, kind: TokenKind) -> Token {
         Token {
             kind,
             lexeme: Range(self.start, self.current),
-            literal,
             line: self.line,
         }
-    }
-}
-
-/// get the token kind & possibly the literal for a given string
-fn token_kind_and_literal_for_text(text: &str) -> (TokenKind, Option<Literal>) {
-    match text.as_ref() {
-        "true" => (TokenKind::True, Some(Literal::Bool(true))),
-        "false" => (TokenKind::False, Some(Literal::Bool(false))),
-        "nil" => (TokenKind::Nil, Some(Literal::Nil)),
-        _ => (token_kind_for_text(text), None),
     }
 }
 
 /// get the token kind (sans literal) for a piece of text. falls back to "identifier"
 fn token_kind_for_text(text: &str) -> TokenKind {
     match text.as_ref() {
+        "true" => TokenKind::True,
+        "false" => TokenKind::False,
+        "nil" => TokenKind::Nil,
         "and" => TokenKind::And,
         "class" => TokenKind::Class,
         "else" => TokenKind::Else,
@@ -246,7 +238,7 @@ mod test {
     fn test_var_with_init() {
         assert_eq!(
             to_token_kinds("var a = 1;"),
-            vec![Var, Identifier, Equal, Number, Semicolon, Eof],
+            vec![Var, Identifier, Equal, Number(1.0), Semicolon, Eof],
         );
     }
 }

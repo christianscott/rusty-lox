@@ -356,11 +356,11 @@ impl Parser {
                 val: Literal::Bool(true),
             }),
             Nil => Ok(Expr::Literal { val: Literal::Nil }),
-            Number => Ok(Expr::Literal {
-                val: Literal::Number(0f64),
+            Number(val) => Ok(Expr::Literal {
+                val: Literal::Number(val),
             }),
-            TokenKind::String => Ok(Expr::Literal {
-                val: Literal::Str("".to_string()),
+            Str(contents) => Ok(Expr::Literal {
+                val: Literal::Str(contents),
             }),
             LeftParen => {
                 let expr = self.expression()?;
@@ -403,7 +403,6 @@ impl Parser {
     fn advance(&mut self) -> Token {
         if !self.is_at_end() {
             self.current += 1;
-            self.current_token_kind = self.peek().kind.clone();
         }
         self.previous()
     }
@@ -443,16 +442,6 @@ mod test {
             kind,
             lexeme: Range(0, 0),
             line: 0,
-            literal: None,
-        }
-    }
-
-    fn token_with_literal(kind: TokenKind, literal: Literal) -> Token {
-        Token {
-            kind,
-            literal: Some(literal),
-            lexeme: Range(0, 0),
-            line: 0,
         }
     }
 
@@ -468,7 +457,7 @@ mod test {
                 token(Var),
                 token(Identifier),
                 token(Equal),
-                token_with_literal(Number, Literal::Number(0f64)),
+                token(Number(0f64)),
                 token(Semicolon),
                 token(Eof),
             ]),
@@ -477,7 +466,6 @@ mod test {
                     kind: TokenKind::Identifier,
                     lexeme: Range(0, 0),
                     line: 0,
-                    literal: None,
                 },
                 initializer: Some(Expr::Literal { val: crate::token::Literal::Number(0.0f64) }),
             }],

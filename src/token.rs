@@ -5,7 +5,6 @@ pub struct Range(pub usize, pub usize);
 pub struct Token {
     pub kind: TokenKind,
     pub lexeme: Range,
-    pub literal: Option<Literal>,
     pub line: usize,
 }
 
@@ -36,8 +35,8 @@ pub enum TokenKind {
 
     // Literals
     Identifier,
-    String,
-    Number,
+    Str(String),
+    Number(f64),
 
     // Keywords
     And,
