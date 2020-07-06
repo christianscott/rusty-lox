@@ -1,6 +1,6 @@
 use crate::token::{Literal, Token};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Expr {
     Binary {
         left: Box<Expr>,
@@ -31,7 +31,7 @@ pub enum Expr {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Stmt {
     Expression {
         expr: Expr,

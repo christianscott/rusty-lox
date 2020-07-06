@@ -1,5 +1,5 @@
 use crate::stmt::{Expr, Stmt};
-use crate::token::{Token, Literal, TokenKind};
+use crate::token::{Literal, Token, TokenKind};
 
 pub fn parse(tokens: Vec<Token>) -> Vec<Stmt> {
     Parser { tokens, current: 0 }.parse()
@@ -22,7 +22,7 @@ macro_rules! check {
             $(Token { kind: $p, .. }) |+ => true,
             _ => false,
         }
-    }; 
+    };
 }
 
 macro_rules! eat {
@@ -63,13 +63,10 @@ impl Parser {
         while !self.is_at_end() {
             match self.declaration() {
                 Ok(statement) => statments.push(statement),
-                Err(ParseErr {
-                    message,
-                    ..
-                }) => {
+                Err(ParseErr { message, token }) => {
                     self.synchronize();
-                    println!("parse error: {}", message)
-                },
+                    println!("parse error at {:?}: {}", token.kind, message)
+                }
             }
         }
 
@@ -93,7 +90,11 @@ impl Parser {
             None
         };
 
-        consume!(self, TokenKind::Semicolon, "Expect ';' after variable declaration.")?;
+        consume!(
+            self,
+            TokenKind::Semicolon,
+            "Expect ';' after variable declaration."
+        )?;
 
         Ok(Stmt::Var { name, initializer })
     }
@@ -108,7 +109,9 @@ impl Parser {
         } else if did_eat!(self, TokenKind::While) {
             self.while_statement()
         } else if did_eat!(self, TokenKind::LeftBrace) {
-            Ok(Stmt::Block{ statements: self.block()? })
+            Ok(Stmt::Block {
+                statements: self.block()?,
+            })
         } else {
             self.expression_statement()
         }
@@ -127,11 +130,17 @@ impl Parser {
         };
 
         let condition = if check!(self, TokenKind::Semicolon) {
-            Expr::Literal { val: Literal::Bool(true) }
+            Expr::Literal {
+                val: Literal::Bool(true),
+            }
         } else {
             self.expression()?
         };
-        consume!(self, TokenKind::Semicolon, "Expect ';' after loop condition.")?;
+        consume!(
+            self,
+            TokenKind::Semicolon,
+            "Expect ';' after loop condition."
+        )?;
 
         let increment = if check!(self, TokenKind::RightParen) {
             None
@@ -143,7 +152,7 @@ impl Parser {
         let mut body = self.statement()?;
         if let Some(increment) = increment {
             body = Stmt::Block {
-                statements: vec![body, Stmt::Expression { expr: increment }]
+                statements: vec![body, Stmt::Expression { expr: increment }],
             };
         }
 
@@ -154,7 +163,7 @@ impl Parser {
 
         if let Some(initializer) = initializer {
             body = Stmt::Block {
-                statements: vec![initializer, body]
+                statements: vec![initializer, body],
             }
         }
 
@@ -164,7 +173,11 @@ impl Parser {
     fn if_statement(&mut self) -> Result<Stmt, ParseErr> {
         consume!(self, TokenKind::LeftParen, "Expect '(' after 'if'.")?;
         let condition = self.expression()?;
-        consume!(self, TokenKind::RightParen, "Expect ')' after if condition.")?;
+        consume!(
+            self,
+            TokenKind::RightParen,
+            "Expect ')' after if condition."
+        )?;
 
         let then_branch = Box::new(self.statement()?);
         let else_branch = if eat!(self, TokenKind::Else).is_some() {
@@ -189,9 +202,16 @@ impl Parser {
     fn while_statement(&mut self) -> Result<Stmt, ParseErr> {
         consume!(self, TokenKind::LeftParen, "Expect '(' after 'while'.")?;
         let condition = self.expression()?;
-        consume!(self, TokenKind::RightParen, "Expect ')' after while condition.")?;
+        consume!(
+            self,
+            TokenKind::RightParen,
+            "Expect ')' after while condition."
+        )?;
         let body = self.statement()?;
-        Ok(Stmt::While{ condition, body: Box::new(body) })
+        Ok(Stmt::While {
+            condition,
+            body: Box::new(body),
+        })
     }
 
     fn block(&mut self) -> Result<Vec<Stmt>, ParseErr> {
@@ -219,7 +239,10 @@ impl Parser {
             let value = self.assignment()?;
 
             if let Expr::Variable { name } = expr {
-                return Ok(Expr::Assign { name, value: Box::new(value) });
+                return Ok(Expr::Assign {
+                    name,
+                    value: Box::new(value),
+                });
             }
 
             return Err(ParseErr {
@@ -281,7 +304,7 @@ impl Parser {
                 right: Box::new(right),
             };
         }
-        Ok(expr) 
+        Ok(expr)
     }
 
     fn addition(&mut self) -> Result<Expr, ParseErr> {
@@ -313,7 +336,10 @@ impl Parser {
     fn unary(&mut self) -> Result<Expr, ParseErr> {
         if let Some(operator) = eat!(self, TokenKind::Bang, TokenKind::Minus) {
             let right = self.unary()?;
-            Ok(Expr::Unary { operator, right: Box::new(right) })
+            Ok(Expr::Unary {
+                operator,
+                right: Box::new(right),
+            })
         } else {
             self.primary()
         }
@@ -323,15 +349,25 @@ impl Parser {
         let tok = self.advance();
         use TokenKind::*;
         match tok.kind {
-            False => Ok(Expr::Literal { val: Literal::Bool(false) }),
-            True => Ok(Expr::Literal { val: Literal::Bool(true) }),
+            False => Ok(Expr::Literal {
+                val: Literal::Bool(false),
+            }),
+            True => Ok(Expr::Literal {
+                val: Literal::Bool(true),
+            }),
             Nil => Ok(Expr::Literal { val: Literal::Nil }),
-            Number => Ok(Expr::Literal { val: Literal::Number(0f64) }),
-            TokenKind::String => Ok(Expr::Literal { val: Literal::Str("".to_string()) }),
+            Number => Ok(Expr::Literal {
+                val: Literal::Number(0f64),
+            }),
+            TokenKind::String => Ok(Expr::Literal {
+                val: Literal::Str("".to_string()),
+            }),
             LeftParen => {
                 let expr = self.expression()?;
                 consume!(self, TokenKind::RightParen, "Expect ')' after expression.")?;
-                Ok(Expr::Grouping { expr: Box::new(expr) })
+                Ok(Expr::Grouping {
+                    expr: Box::new(expr),
+                })
             }
             Identifier => Ok(Expr::Variable { name: tok }),
             _ => Err(ParseErr {
@@ -349,17 +385,17 @@ impl Parser {
             }
 
             match self.peek().kind {
-                TokenKind::Class |
-                TokenKind::Fun |
-                TokenKind::Var |
-                TokenKind::For |
-                TokenKind::If |
-                TokenKind::While |
-                TokenKind::Print |
-                TokenKind::Return => return,
+                TokenKind::Class
+                | TokenKind::Fun
+                | TokenKind::Var
+                | TokenKind::For
+                | TokenKind::If
+                | TokenKind::While
+                | TokenKind::Print
+                | TokenKind::Return => return,
                 _ => {
                     self.advance();
-                },
+                }
             }
         }
     }
@@ -367,8 +403,9 @@ impl Parser {
     fn advance(&mut self) -> Token {
         if !self.is_at_end() {
             self.current += 1;
+            self.current_token_kind = self.peek().kind.clone();
         }
-        self.peek()
+        self.previous()
     }
 
     fn is_at_end(&self) -> bool {
@@ -393,5 +430,57 @@ impl Parser {
 
     fn peek_nth(&self, n: i16) -> Token {
         self.tokens[((self.current as i16) + n) as usize].clone() // TODO: avoidable??
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::token::{Range, TokenKind::*};
+
+    fn token(kind: TokenKind) -> Token {
+        Token {
+            kind,
+            lexeme: Range(0, 0),
+            line: 0,
+            literal: None,
+        }
+    }
+
+    fn token_with_literal(kind: TokenKind, literal: Literal) -> Token {
+        Token {
+            kind,
+            literal: Some(literal),
+            lexeme: Range(0, 0),
+            line: 0,
+        }
+    }
+
+    #[test]
+    fn test_eof() {
+        assert_eq!(parse(vec![token(Eof)]), vec![], );
+    }
+
+    #[test]
+    fn test_var_with_init() {
+        assert_eq!(
+            parse(vec![
+                token(Var),
+                token(Identifier),
+                token(Equal),
+                token_with_literal(Number, Literal::Number(0f64)),
+                token(Semicolon),
+                token(Eof),
+            ]),
+            vec![Stmt::Var {
+                name: Token {
+                    kind: TokenKind::Identifier,
+                    lexeme: Range(0, 0),
+                    line: 0,
+                    literal: None,
+                },
+                initializer: Some(Expr::Literal { val: crate::token::Literal::Number(0.0f64) }),
+            }],
+        );
     }
 }

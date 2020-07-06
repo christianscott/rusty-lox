@@ -1,7 +1,7 @@
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Range(pub usize, pub usize);
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
     pub lexeme: Range,
@@ -9,7 +9,7 @@ pub struct Token {
     pub line: usize,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenKind {
     // SingleCharacterTokens
     LeftParen,
@@ -59,7 +59,7 @@ pub enum TokenKind {
     Eof,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Literal {
     Bool(bool),
     Nil,

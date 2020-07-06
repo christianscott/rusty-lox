@@ -224,3 +224,29 @@ fn token_kind_for_text(text: &str) -> TokenKind {
         _ => TokenKind::Identifier,
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::token::TokenKind::*;
+
+    fn to_token_kinds(source: &str) -> Vec<TokenKind> {
+        lex(source).iter().map(|token| token.kind.clone()).collect()
+    }
+
+    #[test]
+    fn test_var() {
+        assert_eq!(
+            to_token_kinds("var a;"),
+            vec![Var, Identifier, Semicolon, Eof],
+        );
+    }
+
+    #[test]
+    fn test_var_with_init() {
+        assert_eq!(
+            to_token_kinds("var a = 1;"),
+            vec![Var, Identifier, Equal, Number, Semicolon, Eof],
+        );
+    }
+}
