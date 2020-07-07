@@ -1,21 +1,23 @@
-use crate::token::{Literal, Range, Token, TokenKind};
+use crate::token::{Range, Source, Token, TokenKind};
+use std::rc::Rc;
 
-pub fn lex(source: &str) -> Vec<Token> {
-    Lexer::new(source.chars().collect()).lex()
+pub fn lex(name: String, source: &str) -> Vec<Token> {
+    Lexer::new(name, source.chars().collect()).lex()
 }
 
 struct Lexer {
-    chars: Vec<char>,
     tokens: Vec<Token>,
     start: usize,
     current: usize,
     line: usize,
+    source: Rc<Source>,
 }
 
 impl Lexer {
-    fn new(chars: Vec<char>) -> Self {
+    fn new(name: String, chars: Vec<char>) -> Self {
+        let source = Source::new(name, chars);
         Self {
-            chars,
+            source: Rc::new(source),
             tokens: Vec::new(),
             start: 0,
             current: 0,
@@ -135,7 +137,8 @@ impl Lexer {
     }
 
     fn get_lexeme(&self) -> String {
-        self.chars[self.start..self.current]
+        self.source
+            .range(&Range(self.start, self.current))
             .iter()
             .clone()
             .collect()
@@ -162,7 +165,7 @@ impl Lexer {
 
     fn advance(&mut self) -> &char {
         self.current += 1;
-        unsafe { self.chars.get_unchecked(self.current - 1) }
+        self.source.get_unchecked(self.current - 1)
     }
 
     fn peek(&self) -> Option<&char> {
@@ -170,11 +173,11 @@ impl Lexer {
     }
 
     fn peek_nth(&self, n: usize) -> Option<&char> {
-        self.chars.get(self.current + n)
+        self.source.get(self.current + n)
     }
 
     fn is_at_end(&self) -> bool {
-        self.current >= self.chars.len()
+        self.current >= self.source.len()
     }
 
     fn add_basic_token(&mut self, kind: TokenKind) {
@@ -187,8 +190,9 @@ impl Lexer {
 
     fn token(&self, kind: TokenKind) -> Token {
         Token {
+            source: Rc::clone(&self.source),
             kind,
-            lexeme: Range(self.start, self.current),
+            span: Range(self.start, self.current),
             line: self.line,
         }
     }
@@ -223,7 +227,10 @@ mod test {
     use crate::token::TokenKind::*;
 
     fn to_token_kinds(source: &str) -> Vec<TokenKind> {
-        lex(source).iter().map(|token| token.kind.clone()).collect()
+        lex("<for testing>".to_string(), source)
+            .iter()
+            .map(|token| token.kind.clone())
+            .collect()
     }
 
     #[test]

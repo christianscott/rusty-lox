@@ -435,23 +435,28 @@ impl Parser {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::token::{Range, TokenKind::*};
+    use crate::token::{Range, Source, Token, TokenKind, TokenKind::*};
+    use std::rc::Rc;
 
-    fn token(kind: TokenKind) -> Token {
-        Token {
+    fn new_token_factory() -> impl Fn(TokenKind) -> Token {
+        let source = Rc::new(Source::new("For testing".to_string(), vec![]));
+        move |kind| Token {
             kind,
-            lexeme: Range(0, 0),
-            line: 0,
+            line: 1,
+            span: Range(0, 0),
+            source: Rc::clone(&source),
         }
     }
 
     #[test]
     fn test_eof() {
-        assert_eq!(parse(vec![token(Eof)]), vec![], );
+        let token = new_token_factory();
+        assert_eq!(parse(vec![token(Eof)]), vec![],);
     }
 
     #[test]
     fn test_var_with_init() {
+        let token = new_token_factory();
         assert_eq!(
             parse(vec![
                 token(Var),
@@ -462,12 +467,10 @@ mod test {
                 token(Eof),
             ]),
             vec![Stmt::Var {
-                name: Token {
-                    kind: TokenKind::Identifier,
-                    lexeme: Range(0, 0),
-                    line: 0,
-                },
-                initializer: Some(Expr::Literal { val: crate::token::Literal::Number(0.0f64) }),
+                name: token(Identifier),
+                initializer: Some(Expr::Literal {
+                    val: crate::token::Literal::Number(0.0f64)
+                }),
             }],
         );
     }

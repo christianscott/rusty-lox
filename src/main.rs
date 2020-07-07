@@ -37,7 +37,7 @@ impl Lox {
         let contents =
             fs::read_to_string(script_name).expect(&format!("could not open {}", script_name));
 
-        self.run(&contents);
+        self.run(script_name.to_string(), &contents);
 
         if self.had_error {
             std::process::exit(65);
@@ -59,15 +59,15 @@ impl Lox {
                 .read_line(&mut buf)
                 .expect("failed to read line from stdin");
 
-            self.run(&buf);
+            self.run("<repl>".to_string(), &buf);
             self.had_error = false;
 
             buf.clear();
         }
     }
 
-    fn run(&self, source: &str) {
-        let tokens = lex::lex(source);
+    fn run(&self, name: String, source: &str) {
+        let tokens = lex::lex(name, source);
         let statements = parse::parse(tokens);
         println!("{:?}", statements);
     }
