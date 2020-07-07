@@ -2,12 +2,12 @@ use std::env;
 use std::fs;
 use std::io::{self, prelude::Write};
 
+mod environment;
+mod interpret;
 mod lex;
 mod parse;
 mod stmt;
 mod token;
-
-use token::TokenKind;
 
 fn main() {
     let mut lox = Lox::new();
@@ -69,6 +69,6 @@ impl Lox {
     fn run(&self, name: String, source: &str) {
         let tokens = lex::lex(name, source);
         let statements = parse::parse(tokens);
-        println!("{:?}", statements);
+        interpret::interpret(statements);
     }
 }

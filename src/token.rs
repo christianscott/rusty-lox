@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::rc::Rc;
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct Source {
     name: String,
     chars: Vec<char>,
@@ -38,6 +38,12 @@ pub struct Token {
     pub span: Range,
     pub line: usize,
     pub source: Rc<Source>,
+}
+
+impl Token {
+    pub fn name(&self) -> String {
+        self.source.range(&self.span).iter().collect()
+    }
 }
 
 impl PartialEq for Token {
@@ -105,4 +111,34 @@ pub enum Literal {
     Nil,
     Number(f64),
     Str(String),
+}
+
+impl Literal {
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Literal::Bool(val) => *val,
+            _ => true,
+        }
+    }
+
+    pub fn kind_name(&self) -> &str {
+        match self {
+            Literal::Bool(_) => "bool",
+            Literal::Nil => "nil",
+            Literal::Number(_) => "number",
+            Literal::Str(_) => "string",
+        }
+    }
+}
+
+impl std::fmt::Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Literal::Bool(true) => "true",
+            Literal::Bool(false) => "false",
+            Literal::Nil => "nil",
+            Literal::Number(_) => "<number>",
+            Literal::Str(text) => text,
+        })
+    }
 }
