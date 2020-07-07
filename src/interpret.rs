@@ -1,16 +1,16 @@
-use crate::environment::Scope;
+use crate::environment::Environment;
 use crate::stmt::{Expr, Stmt};
 use crate::token::{Literal, Token, TokenKind};
 
 pub fn interpret(statements: Vec<Stmt>) {
     Interpreter {
-        top_level_scope: Scope::new(),
+        environment: Environment::new(),
     }
     .interpret(statements)
 }
 
 struct Interpreter {
-    top_level_scope: Scope,
+    environment: Environment,
 }
 
 impl Interpreter {
@@ -31,12 +31,18 @@ impl Interpreter {
             Stmt::Var { name, initializer } => {
                 if let Some(initializer) = initializer {
                     let value = self.interpret_expression(initializer);
-                    self.top_level_scope.define(name.span.clone(), Some(value));
+                    self.environment.define(name.name(), Some(value));
                 } else {
-                    self.top_level_scope.define(name.span.clone(), None);
+                    self.environment.define(name.name(), None);
                 }
             }
-            Stmt::Block { .. } => unimplemented!(),
+            Stmt::Block { statements } => {
+                self.environment.push();
+                for statement in statements {
+                    self.interpret_statement(statement);
+                }
+                self.environment.pop();
+            }
             Stmt::If {
                 condition,
                 then_branch,
@@ -60,10 +66,7 @@ impl Interpreter {
         match expr {
             Expr::Literal { val } => val.clone(),
             Expr::Grouping { expr } => self.interpret_expression(expr),
-            Expr::Variable { name } => self
-                .top_level_scope
-                .get(name.span.clone())
-                .unwrap_or(Literal::Nil),
+            Expr::Variable { name } => self.environment.get(&name.name()).unwrap_or(Literal::Nil),
             Expr::Unary { operator, right } => {
                 let right = self.interpret_expression(right);
                 match operator.kind {
@@ -140,9 +143,9 @@ impl Interpreter {
             Expr::Assign { name, value } => {
                 let value = self.interpret_expression(value);
                 if let Err(_) = self
-                    .top_level_scope
+                    .environment
                     // TODO: every value is stored twice!!!!! oof
-                    .assign(name.span.clone(), value.clone())
+                    .assign(name.name(), value.clone())
                 {
                     println!("variable {} not declared", name.name())
                 }
