@@ -107,7 +107,7 @@ impl Lexer {
             return;
         }
         self.advance();
-        let text = self.get_lexeme();
+        let text = self.get_lexeme(&Range(self.start + 1, self.current - 1));
         self.add_basic_token(TokenKind::Str(text))
     }
 
@@ -117,12 +117,12 @@ impl Lexer {
             // floating point, e.g. 3.14
             self.advance();
             self.eat_while(|ch| ch.is_numeric());
-            self.get_lexeme()
+            self.get_current_lexeme()
                 .parse()
                 .expect("TODO: real error handling")
         } else {
             // natural number, e.g. 69
-            self.get_lexeme()
+            self.get_current_lexeme()
                 .parse::<u64>()
                 .expect("TODO: real error handling") as f64 // cast int to floating point num
         };
@@ -131,17 +131,17 @@ impl Lexer {
 
     fn identifier(&mut self) {
         self.eat_while(|c| c.is_alphanumeric());
-        let text = self.get_lexeme();
+        let text = self.get_current_lexeme();
         let kind = token_kind_for_text(&text);
         self.add_basic_token(kind);
     }
 
-    fn get_lexeme(&self) -> String {
-        self.source
-            .range(&Range(self.start, self.current))
-            .iter()
-            .clone()
-            .collect()
+    fn get_current_lexeme(&self) -> String {
+        self.get_lexeme(&Range(self.start, self.current))
+    }
+
+    fn get_lexeme(&self, range: &Range) -> String {
+        self.source.range(range).iter().clone().collect()
     }
 
     fn eat(&mut self, c: char) -> bool {

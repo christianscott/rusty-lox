@@ -37,7 +37,7 @@ impl Lox {
         let contents =
             fs::read_to_string(script_name).expect(&format!("could not open {}", script_name));
 
-        self.run(script_name.to_string(), &contents);
+        self.run(script_name.to_string(), &contents, None);
 
         if self.had_error {
             std::process::exit(65);
@@ -51,6 +51,7 @@ impl Lox {
         let stdin = io::stdin();
         let mut stdout = io::stdout();
         let mut buf = String::new();
+        let mut environment = environment::Environment::new();
         loop {
             write!(stdout, "> ").expect("unable to write to stdout");
             stdout.flush().expect("failed to flush stdout");
@@ -59,16 +60,21 @@ impl Lox {
                 .read_line(&mut buf)
                 .expect("failed to read line from stdin");
 
-            self.run("<repl>".to_string(), &buf);
+            environment = self.run("<repl>".to_string(), &buf, Some(environment));
             self.had_error = false;
 
             buf.clear();
         }
     }
 
-    fn run(&self, name: String, source: &str) {
+    fn run(
+        &self,
+        name: String,
+        source: &str,
+        environment: Option<environment::Environment>,
+    ) -> environment::Environment {
         let tokens = lex::lex(name, source);
         let statements = parse::parse(tokens);
-        interpret::interpret(statements);
+        interpret::interpret(statements, environment)
     }
 }

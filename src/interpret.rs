@@ -2,9 +2,9 @@ use crate::environment::Environment;
 use crate::stmt::{Expr, Stmt};
 use crate::token::{Literal, Token, TokenKind};
 
-pub fn interpret(statements: Vec<Stmt>) {
+pub fn interpret(statements: Vec<Stmt>, environment: Option<Environment>) -> Environment {
     Interpreter {
-        environment: Environment::new(),
+        environment: environment.unwrap_or(Environment::new()),
     }
     .interpret(statements)
 }
@@ -14,10 +14,12 @@ struct Interpreter {
 }
 
 impl Interpreter {
-    fn interpret(&mut self, statements: Vec<Stmt>) {
+    fn interpret(mut self, statements: Vec<Stmt>) -> Environment {
         for statement in statements {
             self.interpret_statement(&statement);
         }
+
+        self.environment
     }
 
     fn interpret_statement(&mut self, statement: &Stmt) {
